@@ -8,11 +8,14 @@ import android.graphics.Point;
 
 public class SnakeNodeADT {
 
+	public static final int HEAD_COLOR =  0xff0000ff;
+	public static final int BODY_COLOR =  0xff5555ff;
 	
 	public Point pos = new Point();
 	public int direction;
 	public SnakeNodeADT next = null;
 	
+	public int color;
 	public boolean isHead;
 	public boolean isGrowing;
 	
@@ -24,9 +27,11 @@ public class SnakeNodeADT {
 		if(head) {
 			isHead = true;
 			isGrowing = false;
+			color = HEAD_COLOR;
 		} else {
 			isHead = false;
 			isGrowing = true;
+			color = BODY_COLOR;
 		}
 	}
 	
@@ -64,15 +69,10 @@ public class SnakeNodeADT {
 		
 		if(next != null) {
 			
-			if (next.isGrowing) {
-				
+			if (next.isGrowing)	
 				next.isGrowing = false;
-//				return true;
-			} else {
-				
+			else
 				next.moveTo(oldDirection, solidBoundaries);
-//				return next.moveTo(oldDirection, solidBoundaries);
-			}
 		}
 		
 		if(isHead && next != null && next.isBody(pos.x, pos.y))

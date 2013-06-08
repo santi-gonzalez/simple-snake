@@ -8,7 +8,6 @@ import java.util.Random;
 import santi.android.snake.adt.AbsFruitADT;
 import santi.android.snake.adt.CherryADT;
 import santi.android.snake.adt.SnakeNodeADT;
-import santi.android.snake.controller.ApplicationController;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -27,10 +26,16 @@ public class PlayboardView extends View {
 
 	public static final String TAG = "PlayboardView";
 	
-	public static final int BOARD_SIZE = 15;
-	public static final int MAX_FRUITS = 2;
-	public static final int START_LEVEL = 1;
+	public static final boolean __DEBUG = true;
+	
+	public static final int BOARD_SIZE = 40;
+	public static final int NUM_FRUITS = 4;
+	public static final int START_LEVEL = 5;
 	public static final int NUTRIENTS_LEVEL = 5;
+	public static final boolean SOLID_BOUNDARIES = true;
+	
+	public static final int SNAKE_START_X = BOARD_SIZE - 2;
+	public static final int SNAKE_START_Y =  1;
 	
 	public static final int DIRECTION_LEFT = 0;
 	public static final int DIRECTION_TOP = 1;
@@ -41,29 +46,26 @@ public class PlayboardView extends View {
 	public static final int STATE_INIT = 0;
 	public static final int STATE_READY = 1;
 	public static final int STATE_RUNNING = 2;
-	public static final int STATE_PAUSED = 3;
-	public static final int STATE_WIN = 4;
-	public static final int STATE_LOST = 5;
+	public static final int STATE_WIN = 3;
+	public static final int STATE_LOST = 4;
+	public static final int STATE_PAUSED = 5;
+	public static final int STATE_EXIT = 6;
 	
-	public static final int SNAKE_START_X = BOARD_SIZE - 2;
-	public static final int SNAKE_START_Y =  1;
-	public static final int SNAKE_HEAD_COLOR =  0xff0000ff;
-	public static final int SNAKE_BODY_COLOR =  0xff5555ff;
-	public static final int CHERRY_COLOR =  0xffff0000;
+	public static final long WAIT_TO_START_MILLIS = 2000;
 	
 	private int mWidth;
 	private int mHeigth;
 	
 	private float mTileSize;
 
-	private int mDirection;
-	private float mTouchX;
-	private float mTouchY;
+	private int mDirection = DIRECTION_LEFT;
+	private float mTouchX = 0;
+	private float mTouchY = 0;
 
-	private int mState;
+	private int mState = STATE_INIT;
 	
 	private int mCount = 0;
-	private boolean mSolidBoundaries = true;
+	private boolean mSolidBoundaries = SOLID_BOUNDARIES;
 	
 	private SnakeNodeADT mSnake = new SnakeNodeADT(SNAKE_START_X, SNAKE_START_Y, true);
 	private List<AbsFruitADT> mFruits = new ArrayList<AbsFruitADT>();
@@ -102,7 +104,7 @@ public class PlayboardView extends View {
 		drawCherries(canvas);
 		drawSnake(canvas);
 
-		if (ApplicationController.INSTANCE.getDebug()) {
+		if (__DEBUG) {
 			__deb_printStats(canvas);
 			__deb_printGrid(canvas);
 		}
@@ -132,12 +134,11 @@ public class PlayboardView extends View {
 			while(!isCancelled()) {
 			
 				try {
-					Thread.sleep(1000 / ((int)(mSnake.getBodyCount() / NUTRIENTS_LEVEL) + START_LEVEL));
+					Thread.sleep(1000l / ((long)(mSnake.getBodyCount() / NUTRIENTS_LEVEL) + START_LEVEL));
 				} catch (InterruptedException e) {}
 				
 				publishProgress();
 			}
-			
 			return null;
 		}
 		
@@ -232,7 +233,7 @@ public class PlayboardView extends View {
 
 				setState(STATE_RUNNING);
 			}
-		}, 2000);
+		}, WAIT_TO_START_MILLIS);
 	}
 	
 	public void pause() {
@@ -246,7 +247,7 @@ public class PlayboardView extends View {
 			mTask.cancel(true);
 		}
 		
-		setState(STATE_LOST);
+		setState(STATE_EXIT);
 	}
 
 	//- ####################################################################################################
@@ -302,7 +303,7 @@ public class PlayboardView extends View {
 		if(mFruits == null)
 			mFruits = new ArrayList<AbsFruitADT>();
 		
-		while(mFruits.size() < MAX_FRUITS) {
+		while(mFruits.size() < NUM_FRUITS) {
 			
 			int x = rand.nextInt(BOARD_SIZE);
 			int y = rand.nextInt(BOARD_SIZE);
@@ -365,14 +366,11 @@ public class PlayboardView extends View {
 
 	private void drawSnake(Canvas canvas) {
 		
-		drawTile(canvas, mSnake.pos.x, mSnake.pos.y, SNAKE_HEAD_COLOR);
-		
 		List<SnakeNodeADT> bodyChunks = mSnake.getBody();
 		for(int index = 0 ; index < bodyChunks.size(); index++) {
 			
 			SnakeNodeADT bodyChunk = bodyChunks.get(index);
-			int color = (bodyChunk.isHead) ? SNAKE_HEAD_COLOR : SNAKE_BODY_COLOR;
-			drawTile(canvas, bodyChunk.pos.x, bodyChunk.pos.y, color);
+			drawTile(canvas, bodyChunk.pos.x, bodyChunk.pos.y, bodyChunk.color);
 		}
 	}
 	
@@ -456,6 +454,9 @@ public class PlayboardView extends View {
 			break;
 		case STATE_LOST:
 			canvas.drawText(String.format(state, "lost"), __DEBUG_TEXT_OFFSET_X, __DEBUG_TEXT_OFFSET_Y * 5, __debug_textPaint);
+			break;
+		case STATE_EXIT:
+			canvas.drawText(String.format(state, "exit"), __DEBUG_TEXT_OFFSET_X, __DEBUG_TEXT_OFFSET_Y * 5, __debug_textPaint);
 			break;
 		}
 		canvas.drawText(String.format(nutrients, mSnake.getBodyCount()), __DEBUG_TEXT_OFFSET_X, __DEBUG_TEXT_OFFSET_Y * 6, __debug_textPaint);
